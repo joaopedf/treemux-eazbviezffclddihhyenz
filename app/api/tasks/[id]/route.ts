@@ -6,11 +6,12 @@ import { updateTaskStatusSchema } from '@/lib/validators';
 // GET /api/tasks/[id] - Get single task
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const task = await prisma.task.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         requester: {
           select: {
@@ -54,7 +55,7 @@ export async function GET(
 // PATCH /api/tasks/[id] - Update task status or assign provider
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = getUserFromRequest(request.headers.get('authorization'));
@@ -64,10 +65,11 @@ export async function PATCH(
     }
 
     const body = await request.json();
+    const { id } = await params;
 
     // Check if task exists
     const task = await prisma.task.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!task) {
@@ -84,7 +86,7 @@ export async function PATCH(
       }
 
       const updatedTask = await prisma.task.update({
-        where: { id: params.id },
+        where: { id },
         data: {
           providerId: user.userId,
           status: 'assigned',
@@ -131,7 +133,7 @@ export async function PATCH(
       }
 
       const updatedTask = await prisma.task.update({
-        where: { id: params.id },
+        where: { id },
         data: updateData,
         include: {
           requester: true,
@@ -157,7 +159,7 @@ export async function PATCH(
 // DELETE /api/tasks/[id] - Cancel/delete task
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = getUserFromRequest(request.headers.get('authorization'));
@@ -166,8 +168,9 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { id } = await params;
     const task = await prisma.task.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!task) {
@@ -183,7 +186,7 @@ export async function DELETE(
     }
 
     await prisma.task.update({
-      where: { id: params.id },
+      where: { id },
       data: { status: 'cancelled' },
     });
 

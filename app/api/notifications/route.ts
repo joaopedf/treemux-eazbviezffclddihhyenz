@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getUserFromRequest } from '@/lib/auth';
-
-// Simple in-memory notification store (in production, use Redis or database)
-const notifications = new Map<string, Array<any>>();
+import { getNotifications, createNotification } from '@/lib/notifications';
 
 // GET /api/notifications - Get user notifications
 export async function GET(request: Request) {
@@ -13,7 +11,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userNotifications = notifications.get(user.userId) || [];
+    const userNotifications = getNotifications(user.userId);
 
     return NextResponse.json({ notifications: userNotifications });
   } catch (error) {
@@ -37,24 +35,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const notification = {
-      id: Math.random().toString(36).substring(7),
-      type,
-      message,
-      data,
-      createdAt: new Date().toISOString(),
-      read: false,
-    };
-
-    const userNotifications = notifications.get(userId) || [];
-    userNotifications.unshift(notification);
-
-    // Keep only last 50 notifications
-    if (userNotifications.length > 50) {
-      userNotifications.length = 50;
-    }
-
-    notifications.set(userId, userNotifications);
+    const notification = createNotification(userId, type, message, data);
 
     return NextResponse.json({ notification }, { status: 201 });
   } catch (error) {
@@ -63,30 +44,4 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-}
-
-// Helper function to send notifications
-export async function sendNotification(
-  userId: string,
-  type: string,
-  message: string,
-  data?: any
-) {
-  const notification = {
-    id: Math.random().toString(36).substring(7),
-    type,
-    message,
-    data,
-    createdAt: new Date().toISOString(),
-    read: false,
-  };
-
-  const userNotifications = notifications.get(userId) || [];
-  userNotifications.unshift(notification);
-
-  if (userNotifications.length > 50) {
-    userNotifications.length = 50;
-  }
-
-  notifications.set(userId, userNotifications);
 }

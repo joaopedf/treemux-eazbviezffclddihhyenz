@@ -133,14 +133,15 @@ export async function findMatchingUsers(
   const topMatches = matches.slice(0, limit);
 
   // Save match history for ML learning
-  await prisma.matchHistory.createMany({
-    data: topMatches.map((match) => ({
-      userId: match.userId,
-      taskId: task.id,
-      matchScore: match.score,
-    })),
-    skipDuplicates: true,
-  });
+  if (topMatches.length > 0) {
+    await prisma.matchHistory.createMany({
+      data: topMatches.map((match) => ({
+        userId: match.userId,
+        taskId: task.id,
+        matchScore: match.score,
+      })),
+    });
+  }
 
   return topMatches;
 }
